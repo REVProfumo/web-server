@@ -1,53 +1,62 @@
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonWriter;
+import java.io.File;
 import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.ExecutionException;
 
 
 public class RequestHandler implements HttpHandler {
 
-  private static final String DEVICE = "device";
-  private static final String HOUR = "hour";
-  
   private static final int OK_CODE = 200;
   private static final int KO_CODE = 400;
   
-  private static final String URI_REGEX = "^\\\\?[a-zA-Z]*=[0-9]*$";
+  private static final String KO = "KO";
   
+  private final DataObject bom;
+
+  RequestHandler(File file) throws IOException {
+    bom = new DataObject(file);  
+  }
+
   public void handle(HttpExchange httpExchange) throws IOException {
-    String uri = httpExchange.getRequestURI().getQuery();
-    Pattern uriPattern = Pattern.compile(URI_REGEX);
-    Matcher matcher = uriPattern.matcher(uri);
-    if(!matcher.matches()) {
-      buildResponse(httpExchange, KO_CODE, -1);
-    }
-    String[] pathElements = uri.replace("?","").split("=");
-    
-    if (pathElements.length == 2) {
-      if (pathElements[0].equals(DEVICE)) {
-        int nrDevices = 0;
-        //TODO implement findNrDevices();
-        buildResponse(httpExchange, OK_CODE, nrDevices);
-      } else if (pathElements[0].equals(HOUR)) {
-        int nrInOneHour = 0;
-        //TODO implement findNrInOneHour();
-        buildResponse(httpExchange, OK_CODE, nrInOneHour);
-      }
+    String uri = httpExchange.getRequestURI().getPath();
+    String pathElements = uri.replace("/", "");
+    if (pathElements.equals(DataObject.DataKind.DEVICE_ID.toString())) {
+      buildResponse(httpExchange, OK_CODE, DataObject.DataKind.DEVICE_ID);
+    } else if (pathElements.equals(DataObject.DataKind.HOUR.toString())) {
+      buildResponse(httpExchange, OK_CODE, DataObject.DataKind.HOUR);
     } else {
-      buildResponse(httpExchange, KO_CODE, -1);
+      buildResponse(httpExchange, KO_CODE, null);
     }
   }
 
-  private void buildResponse(HttpExchange he, int responseCode, int nr) throws IOException {
-    he.getResponseHeaders().add("encoding", "UTF-8");
-    he.getResponseHeaders().set("Content-Type", "application/json");
-    String response = String.valueOf(nr);
-    he.sendResponseHeaders(responseCode, response.length());
-    //TODO build body with json
-    he.getResponseBody().write(response.getBytes());
-    he.close();
+  private void buildResponse(HttpExchange httpExchange, int responseCode, DataObject.DataKind kind) throws IOException {
+    httpExchange.getResponseHeaders().add("encoding", "UTF-8");
+    httpExchange.getResponseHeaders().set("Content-Type", "application/json");
+    JsonObject responseBuilder;
+    JsonWriter jwriter;
+    if(kind == null) {
+      //response = KO;
+      jwriter = null;
+    }
+    else {
+      try {
+        responseBuilder = kind.equals(DataObject.DataKind.HOUR) ? bom.getHours() : bom.getDevices();
+        jwriter = Json.createWriter(httpExchange.getResponseBody());
+        httpExchange.sendResponseHeaders(responseCode, responseBuilder.toString().getBytes().length);
+        httpExchange.getResponseBody().write(responseBuilder.toString().getBytes());
+        jwriter.writeObject(responseBuilder);
+        httpExchange.getResponseBody().flush();
+        jwriter.close();
+        httpExchange.close();
+      } catch (ExecutionException | InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
 }
