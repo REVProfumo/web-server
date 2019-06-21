@@ -14,19 +14,28 @@ import java.util.concurrent.Future;
 public class DataObject {
 
   public enum DataKind {
-    DEVICE_ID, HOUR;
+    DEVICE_ID("device"), HOUR("hour"), DAY("day"), MONTH("month");
 
     @Override
     public String toString() {
       return name().toLowerCase();
     }
+    
+    public final String label;
+    private DataKind(String label) {
+      this.label = label;
+    }
   }
   
-  private Future<JsonObject> dataHoursFuture;
-  private Future<JsonObject> dataDevicesFuture;
-  
+  private final Future<JsonObject> dataHoursFuture;
+  private final Future<JsonObject> dataDevicesFuture;
+  private final Future<JsonObject> dataDaysFuture;
+  private final Future<JsonObject> dataMonthsFuture;
+
   private JsonObject dataHours;
   private JsonObject dataDevices;
+  private JsonObject dataDays;
+  private JsonObject dataMonths;
   
   DataObject(File file) throws IOException {
     List<String> device_ids = new ArrayList<>();
@@ -43,10 +52,16 @@ public class DataObject {
     
     Callable<JsonObject> threadDevices = new DataObjectThread(DataKind.DEVICE_ID, device_ids);
     Callable<JsonObject> threadHours = new DataObjectThread(DataKind.HOUR, hours);
-
-    ExecutorService executorService = Executors.newFixedThreadPool(2);
+    Callable<JsonObject> threadDays = new DataObjectThread(DataKind.DAY, hours);
+    Callable<JsonObject> threadMonths = new DataObjectThread(DataKind.MONTH, hours);
+    
+    ExecutorService executorService = Executors.newFixedThreadPool(4);
     dataHoursFuture = executorService.submit(threadHours);
     dataDevicesFuture = executorService.submit(threadDevices);
+    dataDaysFuture = executorService.submit(threadDays);
+    dataMonthsFuture = executorService.submit(threadMonths);
+
+    executorService.shutdown();
   }
 
   JsonObject getHours() throws ExecutionException, InterruptedException{
@@ -61,6 +76,20 @@ public class DataObject {
       dataDevices = dataDevicesFuture.get();
     }
     return dataDevices;  
+  }
+
+  JsonObject getMonths() throws ExecutionException, InterruptedException{
+    if(dataMonths == null) {
+      dataMonths = dataMonthsFuture.get();
+    }
+    return dataMonths;
+  }
+
+  JsonObject getDays() throws ExecutionException, InterruptedException{
+    if(dataDays == null) {
+      dataDays = dataDaysFuture.get();
+    }
+    return dataDays;
   }
   
 }

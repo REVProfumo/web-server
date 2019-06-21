@@ -3,7 +3,6 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
 public class Server {
@@ -20,5 +19,4 @@ public class Server {
       e.printStackTrace();
     }
   }
-  
 }
