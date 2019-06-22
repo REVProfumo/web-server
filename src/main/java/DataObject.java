@@ -11,7 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class DataObject {
+class DataObject {
 
   public enum DataKind {
     DEVICE_ID("device"), HOUR("hour"), DAY("day"), MONTH("month");
@@ -22,7 +22,7 @@ public class DataObject {
     }
     
     public final String label;
-    private DataKind(String label) {
+    DataKind(String label) {
       this.label = label;
     }
   }
