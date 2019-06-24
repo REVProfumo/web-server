@@ -29,7 +29,7 @@ public class RequestHandler implements HttpHandler {
 
   private JsonObject getJson(String pathURL) throws ExecutionException, InterruptedException{
     JsonObject responseBuilder = null;
-      DataObject.DataKind dataKind = DataObject.DataKind.valueOf(pathURL.toUpperCase());
+      DataKind dataKind = DataKind.valueOf(pathURL.toUpperCase());
       switch (dataKind) {
         case DEVICE_ID:
           responseBuilder = bom.getDevices();
