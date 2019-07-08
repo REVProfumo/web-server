@@ -5,7 +5,7 @@ This is an http server running on port 8081. It exposes the following CRUD servi
 /day
 /month
 
-Each of the requests answers to one of the challenges. The result of a CRUD request is an output test in Json 
+The result of a CRUD request is an output test in Json 
 format. In order to generate such output, I use "javax.json". This is the only external dependency needed at runtime.
 
 The Json strings are generated asynchronously through an ExecutorService which submits 4 tasks, one for each
